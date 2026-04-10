@@ -1,0 +1,31 @@
+
+services:
+
+  plagiarism_db:
+    image: postgres:17.3-alpine3.20
+    container_name: plagiarism_db
+    env_file: .env
+    volumes:
+      - plagiarism_db:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  plagiarism_api:
+    build: .
+    container_name: plagiarism_api
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./migrations:/app/migrations
+    depends_on:
+      plagiarism_db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  plagiarism_db:
