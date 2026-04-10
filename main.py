@@ -1,6 +1,25 @@
-def main():
-    print("Hello from nepali-plagiarism-detection-self!")
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from src.database.main import init_db
+import uvicorn
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
+
+app = FastAPI(
+    title="Plagiarism-Detection",
+    lifespan=lifespan,
+)
+
+@app.get("/health")
+async def health_check() -> dict:
+    return {
+        "status": "healthy"
+    }
 
 
 if __name__ == "__main__":
-    main()
+    uvicorn.run(app, host="0.0.0.0", port=8000)

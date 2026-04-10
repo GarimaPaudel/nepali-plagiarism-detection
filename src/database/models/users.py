@@ -9,6 +9,7 @@ import sqlalchemy as sa
 
 if TYPE_CHECKING:
     from src.database.models.submission import Submission
+    from src.database.models.assignment import Assignment
 
 
 class UserRole(str, Enum):
@@ -39,4 +40,5 @@ class Users(Base, table=True):
         ),
     )
 
+    assignments: list["Assignment"] = Relationship(back_populates="creator")
     submissions: list["Submission"] = Relationship(back_populates="student")
