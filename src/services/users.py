@@ -3,6 +3,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.database.models.users import Users
 from src.schemas.user_schemas import CreateUser
 import bcrypt
+import uuid
 
 
 async def create_user(session: AsyncSession, details: CreateUser) -> Users:
@@ -21,3 +22,22 @@ async def create_user(session: AsyncSession, details: CreateUser) -> Users:
 async def get_user_by_username(session: AsyncSession, username: str) -> Users | None:
     result = await session.exec(select(Users).where(Users.username == username))
     return result.first()
+
+
+async def get_user(session: AsyncSession, user_id: uuid.UUID) -> Users | None:
+    result = await session.exec(select(Users).where(Users.id == user_id))
+    return result.first()
+
+
+async def get_all_users(session: AsyncSession) -> list[Users]:
+    result = await session.exec(select(Users))
+    return list(result.all())
+
+
+async def delete_user(session: AsyncSession, user_id: uuid.UUID) -> bool:
+    user = await get_user(session, user_id)
+    if not user:
+        return False
+    await session.delete(user)
+    await session.commit()
+    return True
