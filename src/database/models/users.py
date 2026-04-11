@@ -1,4 +1,3 @@
-from __future__ import annotations
 from src.database.models.base import Base
 from enum import Enum
 from sqlmodel import Column, Field, Relationship
