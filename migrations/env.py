@@ -21,6 +21,12 @@ config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 target_metadata = SQLModel.metadata
 
 
+def render_item(type_, obj, autogen_context):
+    if type_ == "type" and hasattr(obj, "__module__") and obj.__module__.startswith("sqlmodel"):
+        autogen_context.imports.add("import sqlmodel")
+    return False
+
+
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
@@ -28,6 +34,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        render_item=render_item,
     )
 
     with context.begin_transaction():
@@ -44,7 +51,9 @@ async def run_migrations_online() -> None:
     async with connectable.connect() as connection:
         await connection.run_sync(
             lambda conn: context.configure(
-                connection=conn, target_metadata=target_metadata
+                connection=conn,
+                target_metadata=target_metadata,
+                render_item=render_item,
             )
         )
         async with connection.begin():

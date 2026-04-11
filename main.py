@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from src.database.main import init_db
+from src.api.endpoints.users import router as users_router
 import uvicorn
 
 
@@ -13,6 +14,9 @@ app = FastAPI(
     title="Plagiarism-Detection",
     lifespan=lifespan,
 )
+
+app.include_router(users_router)
+
 
 @app.get("/health")
 async def health_check() -> dict:
