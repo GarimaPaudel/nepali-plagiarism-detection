@@ -2,6 +2,7 @@ from src.database.models.base import Base
 from enum import Enum
 from sqlmodel import Column, Field, Relationship
 from datetime import UTC, datetime
+from pydantic import EmailStr
 from typing import TYPE_CHECKING
 import uuid
 import sqlalchemy as sa
@@ -21,8 +22,10 @@ class Users(Base, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
     username: str = Field(nullable=False, unique=True, index=True)
+    email: EmailStr = Field(unique= True, max_length=255)
     hashed_password: str = Field(nullable=False)
     role: UserRole = Field(nullable=False)
+    created_by: uuid.UUID | None = Field(default=None, foreign_key="users.id", nullable=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column=Column(

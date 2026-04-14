@@ -9,23 +9,34 @@ from src.services.assignments import (
     update_assignment,
     delete_assignment,
 )
+from src.api.deps import CurrentUser, TeacherUser
 import uuid
 
 router = APIRouter(prefix="/assignments", tags=["assignments"])
 
 
 @router.post("/", response_model=AssignmentResponse, status_code=status.HTTP_201_CREATED)
-async def create(details: CreateAssignment, session: AsyncSession = Depends(get_session)):
-    return await create_assignment(session, details)
+async def create(
+    details: CreateAssignment,
+    current_user: TeacherUser,
+    session: AsyncSession = Depends(get_session),
+):
+    return await create_assignment(session, details, created_by=current_user.id)
 
 
 @router.get("/", response_model=list[AssignmentResponse])
-async def list_assignments(session: AsyncSession = Depends(get_session)):
+async def list_assignments(
+    current_user: CurrentUser, session: AsyncSession = Depends(get_session)
+):
     return await get_all_assignments(session)
 
 
 @router.get("/{assignment_id}", response_model=AssignmentResponse)
-async def get_one(assignment_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+async def get_one(
+    assignment_id: uuid.UUID,
+    current_user: CurrentUser,
+    session: AsyncSession = Depends(get_session),
+):
     assignment = await get_assignment(session, assignment_id)
     if not assignment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
@@ -36,6 +47,7 @@ async def get_one(assignment_id: uuid.UUID, session: AsyncSession = Depends(get_
 async def update(
     assignment_id: uuid.UUID,
     details: UpdateAssignment,
+    current_user: TeacherUser,
     session: AsyncSession = Depends(get_session),
 ):
     assignment = await update_assignment(session, assignment_id, details)
@@ -45,7 +57,11 @@ async def update(
 
 
 @router.delete("/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete(assignment_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+async def delete(
+    assignment_id: uuid.UUID,
+    current_user: TeacherUser,
+    session: AsyncSession = Depends(get_session),
+):
     deleted = await delete_assignment(session, assignment_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")

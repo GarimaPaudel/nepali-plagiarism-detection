@@ -5,12 +5,14 @@ from src.schemas.assignment_schemas import CreateAssignment, UpdateAssignment
 import uuid
 
 
-async def create_assignment(session: AsyncSession, details: CreateAssignment) -> Assignment:
+async def create_assignment(
+    session: AsyncSession, details: CreateAssignment, created_by: uuid.UUID
+) -> Assignment:
     assignment = Assignment(
         topic=details.topic,
         description=details.description,
         due_date=details.due_date,
-        created_by=details.created_by,
+        created_by=created_by,
     )
     session.add(assignment)
     await session.commit()

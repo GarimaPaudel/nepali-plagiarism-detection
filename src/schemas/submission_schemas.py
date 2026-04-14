@@ -5,7 +5,6 @@ from datetime import datetime
 
 class CreateSubmission(BaseModel):
     assignment_id: uuid.UUID
-    student_id: uuid.UUID
     content: str
 
 

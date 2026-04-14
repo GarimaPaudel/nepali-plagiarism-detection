@@ -16,7 +16,9 @@ class Assignment(Base, table=True):
     topic: str = Field(nullable=False)
     description: Optional[str] = Field(default=None)
     created_by: uuid.UUID = Field(foreign_key="users.id", nullable=False)
-    due_date: datetime = Field(nullable=False)
+    due_date: datetime = Field(
+        sa_column=Column(sa.DateTime(timezone=True), nullable=False)
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
