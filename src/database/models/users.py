@@ -21,7 +21,7 @@ class Users(Base, table=True):
     __tablename__ = "users"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
-    username: str = Field(nullable=False, unique=True, index=True)
+    username: str = Field(nullable=False, index=True)
     email: EmailStr = Field(unique= True, max_length=255)
     hashed_password: str = Field(nullable=False)
     role: UserRole = Field(nullable=False)

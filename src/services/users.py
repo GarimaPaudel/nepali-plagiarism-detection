@@ -7,6 +7,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.config import settings
+from src.core.exception import ConflictException, UnauthorizedException
 from src.database.models.users import UserRole, Users
 from src.schemas.user_schemas import RegisterTeacher, CreateStudent
 import uuid
@@ -32,7 +33,13 @@ async def get_all_users(session: AsyncSession) -> list[Users]:
     return list(result.all())
 
 
-async def register_teacher(session: AsyncSession, details: RegisterTeacher) -> Users:
+async def register_teacher(
+    session: AsyncSession, details: RegisterTeacher
+    )-> Users:
+    
+    if await get_user_by_email(session, details.email):
+        raise ConflictException(message="Email already registered")
+
     hashed_password = bcrypt.hashpw(details.password.encode(), bcrypt.gensalt()).decode()
     user = Users(
         username=details.username,
@@ -49,6 +56,8 @@ async def register_teacher(session: AsyncSession, details: RegisterTeacher) -> U
 async def create_student(
     session: AsyncSession, details: CreateStudent, created_by: uuid.UUID
 ) -> Users:
+    if await get_user_by_email(session, details.email):
+        raise ConflictException(message="Email already registered")
     hashed_password = bcrypt.hashpw(details.password.encode(), bcrypt.gensalt()).decode()
     user = Users(
         username=details.username,
@@ -66,7 +75,7 @@ async def create_student(
 async def login(session: AsyncSession, email: str, password: str) -> str:
     user = await get_user_by_email(session, email)
     if not user or not bcrypt.checkpw(password.encode(), user.hashed_password.encode()):
-        raise ValueError("Invalid email or password")
+        raise UnauthorizedException(message="Invalid email or password")
     expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     secret_key = jwk.OctetJWK(settings.JWT_SECRET_KEY.encode())
     token = jwt.JWT().encode(
