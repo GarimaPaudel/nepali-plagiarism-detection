@@ -5,10 +5,12 @@ from src.schemas.submission_schemas import CreateSubmission
 import uuid
 
 
-async def create_submission(session: AsyncSession, details: CreateSubmission) -> Submission:
+async def create_submission(
+    session: AsyncSession, details: CreateSubmission, student_id: uuid.UUID
+) -> Submission:
     submission = Submission(
         assignment_id=details.assignment_id,
-        student_id=details.student_id,
+        student_id=student_id,
         content=details.content,
     )
     session.add(submission)

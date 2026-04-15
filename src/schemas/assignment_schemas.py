@@ -7,7 +7,6 @@ class CreateAssignment(BaseModel):
     topic: str
     description: str | None = None
     due_date: datetime
-    created_by: uuid.UUID
 
 
 class UpdateAssignment(BaseModel):
