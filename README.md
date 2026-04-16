@@ -301,31 +301,31 @@ docker compose exec plagiarism_worker celery -A src.tasks.celery_app inspect act
 ```
 src/
 ├── api/
-│   ├── deps.py              # Auth dependencies (CurrentUser, TeacherUser)
+│   ├── deps.py              # Auth dependencies 
 │   └── endpoints/
 │       ├── users.py
 │       ├── assignments.py
 │       └── submissions.py
 ├── core/
-│   ├── responses.py         # APIResponse envelope
-│   └── exception.py         # Custom exceptions
+│   ├── responses.py         
+│   └── exception.py         
 ├── database/
-│   ├── main.py              # Async engine + session
+│   ├── main.py              
 │   └── models/
 │       ├── users.py
 │       ├── assignment.py
-│       └── submission.py    # Submission + PlagiarismResult
+│       └── submission.py    
 ├── ml/
-│   ├── pipeline.py          # Main detection logic
-│   ├── preprocess.py        # Nepali text preprocessor
-│   ├── stemmer.py           # Snowball Nepali stemmer
-│   ├── embed.py             # TF-IDF vectorizer
-│   └── model_loader.py      # XLM-RoBERTa lazy loader
-├── schemas/                 # Pydantic request/response schemas
+│   ├── pipeline.py          
+│   ├── preprocess.py        
+│   ├── stemmer.py           
+│   ├── embed.py             
+│   └── model_loader.py      
+├── schemas/                 
 ├── services/
-│   ├── plagiarism_service.py  # Orchestrates corpus + peer checks
-│   └── report_service.py      # PDF report generation
+│   ├── plagiarism_service.py  
+│   └── report_service.py      
 └── tasks/
-    ├── celery_app.py        # Celery app config
-    └── plagiarism_tasks.py  # Async plagiarism check task
+    ├── celery_app.py        
+    └── plagiarism_tasks.py  
 ```
