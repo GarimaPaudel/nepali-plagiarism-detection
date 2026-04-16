@@ -16,7 +16,8 @@ class Submission(Base, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
     assignment_id: uuid.UUID = Field(foreign_key="assignments.id", nullable=False)
     student_id: uuid.UUID = Field(foreign_key="users.id", nullable=False)
-    content: str = Field(nullable=False)
+    original_filename: Optional[str] = Field(default=None, nullable=True)
+    file_path: Optional[str] = Field(default=None, nullable=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
@@ -36,7 +37,9 @@ class Submission(Base, table=True):
     assignment: Optional["Assignment"] = Relationship(back_populates="submissions")
     student: Optional["Users"] = Relationship(back_populates="submissions")
     plagiarism_results: list["PlagiarismResult"] = Relationship(
-        back_populates="submission", cascade_delete=True
+        back_populates="submission",
+        cascade_delete=True,
+        sa_relationship_kwargs={"foreign_keys": "[PlagiarismResult.submission_id]"},
     )
 
 
@@ -45,7 +48,12 @@ class PlagiarismResult(Base, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
     submission_id: uuid.UUID = Field(foreign_key="submissions.id", nullable=False)
-    reference_filename: str = Field(nullable=False)
+    # corpus comparison — set when checking against a corpus file
+    reference_filename: Optional[str] = Field(default=None, nullable=True)
+    # peer comparison — set when checking against another student's submission
+    reference_submission_id: Optional[uuid.UUID] = Field(
+        default=None, foreign_key="submissions.id", nullable=True
+    )
     tfidf_similarity: Optional[float] = Field(default=None)
     xlm_similarity: Optional[float] = Field(default=None)
     is_plagiarized: Optional[bool] = Field(default=None)
@@ -68,4 +76,7 @@ class PlagiarismResult(Base, table=True):
         ),
     )
 
-    submission: Optional["Submission"] = Relationship(back_populates="plagiarism_results")
+    submission: Optional["Submission"] = Relationship(
+        back_populates="plagiarism_results",
+        sa_relationship_kwargs={"foreign_keys": "[PlagiarismResult.submission_id]"},
+    )

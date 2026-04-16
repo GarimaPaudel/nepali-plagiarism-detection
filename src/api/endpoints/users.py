@@ -41,19 +41,17 @@ async def register_teacher_account(
         raise CustomException(message="Error while registering account.") from e
 
 
-@router.post("/login", response_model=APIResponse[TokenResponse])
+@router.post("/login", response_model=TokenResponse)
 async def login_user(
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_session),
 ):
-    # OAuth2PasswordRequestForm uses 'username' field — we treat it as email
+    # OAuth2PasswordRequestForm uses 'username' field — we treat it as email.
+    # Must return TokenResponse directly (not wrapped in APIResponse) so that
+    # Swagger's OAuth2 flow can extract the access_token automatically.
     try:
         token = await login(session, form_data.username, form_data.password)
-        return APIResponse(
-            success=True,
-            message="Loggeg in successfully",
-            data=TokenResponse(access_token=token)
-        )
+        return TokenResponse(access_token=token)
 
     except UnauthorizedException as e:
         logger.error(f"Error logging into the account: {e!s}")
