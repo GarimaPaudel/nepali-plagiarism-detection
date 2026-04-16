@@ -14,6 +14,16 @@ services:
       timeout: 5s
       retries: 10
 
+  plagiarism_redis:
+    image: redis:7-alpine
+    container_name: plagiarism_redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   plagiarism_api:
     build: .
     container_name: plagiarism_api
@@ -22,8 +32,29 @@ services:
       - "8000:8000"
     volumes:
       - ./migrations:/app/migrations
+      - ./resources:/app/resources
+      - ./corpus:/app/corpus
+      - ./model:/app/model
     depends_on:
       plagiarism_db:
+        condition: service_healthy
+      plagiarism_redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  plagiarism_worker:
+    build: .
+    container_name: plagiarism_worker
+    command: celery -A src.tasks.celery_app worker --loglevel=info
+    env_file: .env
+    volumes:
+      - ./resources:/app/resources
+      - ./corpus:/app/corpus
+      - ./model:/app/model
+    depends_on:
+      plagiarism_db:
+        condition: service_healthy
+      plagiarism_redis:
         condition: service_healthy
     restart: unless-stopped
 

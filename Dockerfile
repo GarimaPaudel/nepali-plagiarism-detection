@@ -18,13 +18,14 @@ COPY ./pyproject.toml ./uv.lock /app/
 RUN apt-get update \
     && apt-get install -y postgresql-client \
     && rm -rf /var/lib/apt/lists/* \
-    && uv sync --frozen --no-install-project
+    && uv sync --frozen --no-install-project --extra-index-url https://download.pytorch.org/whl/cpu
 
 
 COPY ./src /app/src
 COPY ./main.py /app/main.py
 COPY ./migrations /app/migrations
 COPY ./alembic.ini /app/alembic.ini
+COPY ./resources /app/resources
 
 
 CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"]
