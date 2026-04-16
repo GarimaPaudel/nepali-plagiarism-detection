@@ -35,6 +35,7 @@ services:
       - ./resources:/app/resources
       - ./corpus:/app/corpus
       - ./model:/app/model
+      - plagiarism_uploads:/app/uploads
     depends_on:
       plagiarism_db:
         condition: service_healthy
@@ -45,12 +46,13 @@ services:
   plagiarism_worker:
     build: .
     container_name: plagiarism_worker
-    command: celery -A src.tasks.celery_app worker --loglevel=info
+    command: celery -A src.tasks.celery_app worker --loglevel=info --include=src.tasks.plagiarism_tasks
     env_file: .env
     volumes:
       - ./resources:/app/resources
       - ./corpus:/app/corpus
       - ./model:/app/model
+      - plagiarism_uploads:/app/uploads
     depends_on:
       plagiarism_db:
         condition: service_healthy
@@ -60,3 +62,4 @@ services:
 
 volumes:
   plagiarism_db:
+  plagiarism_uploads:

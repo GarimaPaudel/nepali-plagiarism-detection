@@ -31,16 +31,16 @@ def get_model():
             "or set MODEL_PATH to the correct directory."
         )
 
-    logger.info("Loading XLM-RoBERTa tokenizer from %s", tokenizer_path)
+    logger.info(f"Loading XLM-RoBERTa tokenizer from {tokenizer_path}")
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 
-    logger.info("Loading XLM-RoBERTa model from %s", model_path)
+    logger.info(f"Loading XLM-RoBERTa model from {model_path}")
     model = AutoModel.from_pretrained(model_path)
     model.eval()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
-    logger.info("Model loaded on device: %s", device)
+    logger.info(f"Model loaded on device: {device}")
 
     return tokenizer, model
 

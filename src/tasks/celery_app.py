@@ -5,6 +5,7 @@ celery_app = Celery(
     "plagiarism",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
+    include=["src.tasks.plagiarism_tasks"],
 )
 
 celery_app.conf.update(

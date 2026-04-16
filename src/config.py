@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     # ML / plagiarism detection
     MODEL_PATH: str = "/app/model"
     CORPUS_PATH: str = "/app/corpus"
+    UPLOADS_PATH: str = "/app/uploads"
     STOPWORDS_PATH: str = "/app/resources/nepali_stopwords.txt"
     FONT_PATH: str = "/app/resources/NotoSansDevanagari-Bold.ttf"
     PLAGIARISM_THRESHOLD: float = 0.5

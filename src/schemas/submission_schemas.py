@@ -3,16 +3,12 @@ import uuid
 from datetime import datetime
 
 
-class CreateSubmission(BaseModel):
-    assignment_id: uuid.UUID
-    content: str
-
-
 class SubmissionResponse(BaseModel):
     id: uuid.UUID
     assignment_id: uuid.UUID
     student_id: uuid.UUID
-    content: str
+    original_filename: str | None
+    file_path: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -20,7 +16,10 @@ class SubmissionResponse(BaseModel):
 class PlagiarismResultResponse(BaseModel):
     id: uuid.UUID
     submission_id: uuid.UUID
-    reference_filename: str
+    # corpus comparison
+    reference_filename: str | None
+    # peer comparison
+    reference_submission_id: uuid.UUID | None
     tfidf_similarity: float | None
     xlm_similarity: float | None
     is_plagiarized: bool | None
@@ -29,6 +28,8 @@ class PlagiarismResultResponse(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 class CheckStatusResponse(BaseModel):

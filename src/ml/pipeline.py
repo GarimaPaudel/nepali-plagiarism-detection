@@ -9,7 +9,7 @@ import os
 import re
 import unicodedata
 
-import PyPDF2
+import pypdf
 import torch
 import torch.nn.functional as F
 from loguru import logger
@@ -39,11 +39,23 @@ def read_file_with_encoding(file_path: str) -> str:
 
 def extract_text_from_pdf(uploaded_pdf) -> str:
     text = ""
-    pdf_reader = PyPDF2.PdfReader(uploaded_pdf)
+    pdf_reader = pypdf.PdfReader(uploaded_pdf)
     for page in pdf_reader.pages:
         text += page.extract_text() or ""
-    text = text.replace("\n", "")
+    text = text.replace("\n", "").replace("\x00", "")
     return unicodedata.normalize("NFC", text)
+
+
+# ---------------------------------------------------------------------------
+# File-based text loader
+# ---------------------------------------------------------------------------
+
+def get_submission_text(file_path: str) -> str:
+    """Read and return text from a submission file (.txt or .pdf)."""
+    if file_path.endswith(".pdf"):
+        with open(file_path, "rb") as f:
+            return extract_text_from_pdf(f)
+    return read_file_with_encoding(file_path)
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +141,7 @@ def compare_against_corpus(uploaded_text: str) -> list[dict] | None:
 
     corpus_path = settings.CORPUS_PATH
     if not os.path.exists(corpus_path):
-        logger.error("Corpus directory not found: %s", corpus_path)
+        logger.error(f"Corpus directory not found: {corpus_path}" )
         return None
 
     with open(settings.STOPWORDS_PATH, "r", encoding="utf-8") as f:
@@ -161,6 +173,60 @@ def compare_against_corpus(uploaded_text: str) -> list[dict] | None:
 
         results.append({
             "filename": filename,
+            "is_plagiarized": is_plagiarized,
+            "similarity_score": float(tfidf_score),
+            "xlm_similarity": float(xlm_score) if xlm_score is not None else None,
+            "matches": [list(m) for m in matches],
+        })
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Peer-submission comparison
+# ---------------------------------------------------------------------------
+
+def compare_against_submissions(
+    uploaded_text: str,
+    peer_submissions: list[dict],
+) -> list[dict]:
+    """
+    Compare uploaded_text against a list of peer submissions for the same assignment.
+
+    peer_submissions: list of dicts with keys:
+        submission_id (str/UUID), content (str), original_filename (str|None)
+
+    Each result dict has:
+        submission_id, original_filename, is_plagiarized,
+        similarity_score, xlm_similarity, matches
+    """
+    from src.config import settings
+
+    with open(settings.STOPWORDS_PATH, "r", encoding="utf-8") as f:
+        stopwords = f.read().splitlines()
+
+    preprocessor = TextPreprocessor(stopwords)
+    embedder = TFIDFEmbedder()
+
+    results = []
+    for peer in peer_submissions:
+        peer_text = peer["content"]
+        if not peer_text:
+            continue
+
+        preprocessed_ref = preprocessor.preprocess(peer_text)
+        preprocessed_sub = preprocessor.preprocess(uploaded_text)
+        ref_str = " ".join(w for sentence in preprocessed_ref for w in sentence)
+        sub_str = " ".join(w for sentence in preprocessed_sub for w in sentence)
+
+        tfidf_score = embedder.calculate_features(ref_str, sub_str) if ref_str and sub_str else 0.0
+        is_plagiarized = tfidf_score >= settings.PLAGIARISM_THRESHOLD
+        matches = find_copied_sentences(peer_text, uploaded_text)
+        xlm_score = xlm_similarity(peer_text, uploaded_text)
+
+        results.append({
+            "submission_id": str(peer["submission_id"]),
+            "original_filename": peer.get("original_filename"),
             "is_plagiarized": is_plagiarized,
             "similarity_score": float(tfidf_score),
             "xlm_similarity": float(xlm_score) if xlm_score is not None else None,

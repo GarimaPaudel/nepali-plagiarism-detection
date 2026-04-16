@@ -1,5 +1,8 @@
 import io
+import os
 import uuid
+from pathlib import Path
+
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from fastapi.responses import StreamingResponse
@@ -12,7 +15,6 @@ from src.core.exception import CustomException, ForbiddenException, NotFoundExce
 from src.core.responses import APIResponse
 from src.database.main import get_session
 from src.database.models.submission import PlagiarismResult, Submission
-from src.ml.pipeline import extract_text_from_pdf
 from src.schemas.submission_schemas import (
     CheckStatusResponse,
     PlagiarismResultResponse,
@@ -40,26 +42,30 @@ async def submit_assignment(
     session: AsyncSession = Depends(get_session),
 ) -> APIResponse:
     try:
-        if file.filename.endswith(".txt"):
-            content = (await file.read()).decode("utf-8", errors="ignore")
-        elif file.filename.endswith(".pdf"):
-            content = extract_text_from_pdf(io.BytesIO(await file.read()))
-        else:
-            from src.core.exception import CustomException
+        raw_bytes = await file.read()
+        original_filename = file.filename or "upload"
+
+        if not original_filename.endswith((".txt", ".pdf")):
             raise CustomException(message="Only .txt and .pdf files are accepted")
 
         submission = Submission(
             assignment_id=assignment_id,
             student_id=current_user.id,
-            content=content,
+            original_filename=original_filename,
         )
         session.add(submission)
         await session.flush()  # get submission.id before commit
 
+        # Save file to disk: /app/uploads/{assignment_id}/{submission_id}_{filename}
+        from src.config import settings as app_settings
+        upload_dir = Path(app_settings.UPLOADS_PATH) / str(assignment_id)
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        file_path = upload_dir / f"{submission.id}_{original_filename}"
+        file_path.write_bytes(raw_bytes)
+        submission.file_path = str(file_path)
+
         # Seed pending result rows so status polling works immediately
-        import os
-        from src.config import settings
-        corpus_path = settings.CORPUS_PATH
+        corpus_path = app_settings.CORPUS_PATH
         if os.path.exists(corpus_path):
             for fname in os.listdir(corpus_path):
                 if fname.endswith((".txt", ".pdf")):
@@ -68,6 +74,20 @@ async def submit_assignment(
                         reference_filename=fname,
                         status="pending",
                     ))
+
+        # Seed pending rows for existing peer submissions in the same assignment
+        peers_result = await session.exec(
+            select(Submission).where(
+                Submission.assignment_id == assignment_id,
+                Submission.id != submission.id,
+            )
+        )
+        for peer in peers_result.all():
+            session.add(PlagiarismResult(
+                submission_id=submission.id,
+                reference_submission_id=peer.id,
+                status="pending",
+            ))
 
         await session.commit()
         await session.refresh(submission)
@@ -187,8 +207,11 @@ async def download_report(
         )
         results = results_result.all()
 
+        if not submission.file_path:
+            raise CustomException(message="Submission file not found on disk")
+
         buf = io.BytesIO()
-        build_pdf_report(buf, submission.content, results)
+        build_pdf_report(buf, submission.file_path, results)
         buf.seek(0)
 
         return StreamingResponse(

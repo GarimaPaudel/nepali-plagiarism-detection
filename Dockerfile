@@ -5,6 +5,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 ENV PYTHONPATH=/app
+ENV UV_HTTP_TIMEOUT=300
 
 # Install astral UV runtime
 COPY --from=ghcr.io/astral-sh/uv:0.6.13 /uv /uvx /bin/
